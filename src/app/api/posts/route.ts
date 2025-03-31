@@ -128,8 +128,15 @@ export async function POST(request: NextRequest) {
     // Preparar valores da data agendada
     let scheduledDate = null;
     if (postData.publishType === PublishType.SCHEDULED && postData.scheduledDate) {
-      // Converter de ISO para formato do MySQL
-      scheduledDate = new Date(postData.scheduledDate).toISOString().slice(0, 19).replace('T', ' ');
+      // Corrigir o problema de formatação da data - debugar
+      const scheduledDateObj = new Date(postData.scheduledDate);
+      console.log('Data original recebida:', postData.scheduledDate);
+      console.log('Data convertida para objeto Date:', scheduledDateObj);
+      console.log('Mês do objeto Date:', scheduledDateObj.getMonth() + 1); // +1 porque getMonth() retorna 0-11
+      
+      // Usar formato UTC para evitar problemas de fuso horário
+      scheduledDate = scheduledDateObj.toISOString().slice(0, 19).replace('T', ' ');
+      console.log('Data formatada para MySQL:', scheduledDate);
     }
     
     // Preparar valores da data de publicação

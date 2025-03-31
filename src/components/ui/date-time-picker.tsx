@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "./input";
 
 interface DateTimePickerProps {
@@ -18,11 +18,28 @@ export function DateTimePicker({
 }: DateTimePickerProps) {
   // Formatar a data para o input de data no formato YYYY-MM-DD
   const formatDateForInput = (date: Date): string => {
-    return date.toISOString().split('T')[0];
+    // Garantir que estamos trabalhando com uma data válida
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      console.error("Data inválida:", date);
+      date = new Date(); // Fallback para data atual
+    }
+    
+    // Obtendo componentes no fuso horário local
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // +1 porque getMonth() retorna 0-11
+    const day = date.getDate().toString().padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
   };
 
   // Formatar a hora para o input de hora no formato HH:MM
   const formatTimeForInput = (date: Date): string => {
+    // Garantir que estamos trabalhando com uma data válida
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      console.error("Data inválida para formatação de hora:", date);
+      date = new Date(); // Fallback para data atual
+    }
+    
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     return `${hours}:${minutes}`;
@@ -31,18 +48,34 @@ export function DateTimePicker({
   const [dateValue, setDateValue] = useState(formatDateForInput(value));
   const [timeValue, setTimeValue] = useState(formatTimeForInput(value));
 
+  // Atualizar os valores dos campos quando o valor da prop mudar
+  useEffect(() => {
+    console.log("DateTimePicker recebeu nova data:", value);
+    setDateValue(formatDateForInput(value));
+    setTimeValue(formatTimeForInput(value));
+  }, [value]);
+
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDateStr = e.target.value;
     setDateValue(newDateStr);
     
     if (newDateStr) {
-      const [year, month, day] = newDateStr.split('-').map(Number);
-      const newDate = new Date(value);
-      newDate.setFullYear(year);
-      newDate.setMonth(month - 1); // Mês no JavaScript é 0-indexed
-      newDate.setDate(day);
-      
-      onChange(newDate);
+      try {
+        const [year, month, day] = newDateStr.split('-').map(Number);
+        const newDate = new Date(value);
+        
+        console.log("Componentes da data:", { year, month, day });
+        
+        newDate.setFullYear(year);
+        newDate.setMonth(month - 1); // Mês no JavaScript é 0-indexed
+        newDate.setDate(day);
+        
+        console.log("Nova data após alteração:", newDate);
+        
+        onChange(newDate);
+      } catch (error) {
+        console.error("Erro ao processar a data:", error);
+      }
     }
   };
 
@@ -51,12 +84,21 @@ export function DateTimePicker({
     setTimeValue(newTimeStr);
     
     if (newTimeStr) {
-      const [hours, minutes] = newTimeStr.split(':').map(Number);
-      const newDate = new Date(value);
-      newDate.setHours(hours);
-      newDate.setMinutes(minutes);
-      
-      onChange(newDate);
+      try {
+        const [hours, minutes] = newTimeStr.split(':').map(Number);
+        const newDate = new Date(value);
+        
+        console.log("Componentes da hora:", { hours, minutes });
+        
+        newDate.setHours(hours);
+        newDate.setMinutes(minutes);
+        
+        console.log("Nova data após alteração de hora:", newDate);
+        
+        onChange(newDate);
+      } catch (error) {
+        console.error("Erro ao processar a hora:", error);
+      }
     }
   };
 

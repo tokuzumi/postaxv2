@@ -146,7 +146,15 @@ export async function PUT(
     
     if (data.scheduledDate !== undefined) {
       updateFields.push("scheduled_date = ?");
-      values.push(new Date(data.scheduledDate).toISOString().slice(0, 19).replace('T', ' '));
+      const scheduledDateObj = new Date(data.scheduledDate);
+      console.log('PUT - Data original recebida:', data.scheduledDate);
+      console.log('PUT - Data convertida para objeto Date:', scheduledDateObj);
+      console.log('PUT - Mês do objeto Date:', scheduledDateObj.getMonth() + 1);
+      
+      // Usar formato UTC para evitar problemas de fuso horário
+      const formattedDate = scheduledDateObj.toISOString().slice(0, 19).replace('T', ' ');
+      console.log('PUT - Data formatada para MySQL:', formattedDate);
+      values.push(formattedDate);
     }
     
     if (data.socialNetworks !== undefined) {

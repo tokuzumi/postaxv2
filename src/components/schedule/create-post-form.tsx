@@ -79,11 +79,23 @@ export function CreatePostForm() {
     setContent("");
     setSelectedFile(undefined);
     
-    // Resetar data para uma hora no futuro
+    // Resetar data para uma hora no futuro - importante criar uma nova instância
     const newDate = new Date();
     newDate.setHours(newDate.getHours() + 1);
     newDate.setMinutes(0);
-    setScheduledDate(newDate);
+    setScheduledDate(new Date(newDate));
+    
+    // Forçar renderização do DateTimePicker
+    setTimeout(() => {
+      const dateElements = document.querySelectorAll('input[type="date"], input[type="time"]');
+      dateElements.forEach(el => {
+        if (el instanceof HTMLInputElement) {
+          // Forçar evento de mudança para atualizar UI
+          const event = new Event('change', { bubbles: true });
+          el.dispatchEvent(event);
+        }
+      });
+    }, 0);
     
     // Resetar as redes sociais para o padrão (primeiras duas)
     if (availableNetworks.length > 0) {
