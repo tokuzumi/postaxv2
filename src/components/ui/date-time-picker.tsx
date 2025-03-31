@@ -62,15 +62,21 @@ export function DateTimePicker({
     if (newDateStr) {
       try {
         const [year, month, day] = newDateStr.split('-').map(Number);
+        console.log('Data selecionada no input:', { year, month, day });
+        
         const newDate = new Date(value);
-        
-        console.log("Componentes da data:", { year, month, day });
-        
         newDate.setFullYear(year);
         newDate.setMonth(month - 1); // Mês no JavaScript é 0-indexed
         newDate.setDate(day);
         
-        console.log("Nova data após alteração:", newDate);
+        console.log('Nova data após alteração:', newDate);
+        console.log('Componentes da nova data:', {
+          year: newDate.getFullYear(),
+          month: newDate.getMonth() + 1,
+          day: newDate.getDate(),
+          hours: newDate.getHours(),
+          minutes: newDate.getMinutes()
+        });
         
         onChange(newDate);
       } catch (error) {

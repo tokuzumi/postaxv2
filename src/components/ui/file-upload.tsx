@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, ChangeEvent } from "react";
+import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { Button } from "./button";
 
 interface FileUploadProps {
@@ -94,15 +94,30 @@ export function FileUpload({
     }
   };
 
-  const handleRemoveFile = () => {
+  const handleReset = () => {
+    console.log('FileUpload: Resetando componente');
     setPreview(null);
     setFileName(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
     // Informar ao componente pai que nenhum arquivo está selecionado
     onFileSelect(undefined as unknown as File);
   };
+
+  useEffect(() => {
+    const handleResetEvent = () => {
+      console.log('FileUpload: Recebido evento de reset');
+      handleReset();
+    };
+
+    // Adicionar listener para o evento customizado
+    window.addEventListener('fileUpload:reset', handleResetEvent);
+
+    return () => {
+      window.removeEventListener('fileUpload:reset', handleResetEvent);
+    };
+  }, [onFileSelect]);
 
   return (
     <div className={`
@@ -144,7 +159,7 @@ export function FileUpload({
             <Button 
               variant="destructive" 
               size="sm" 
-              onClick={handleRemoveFile}
+              onClick={handleReset}
               type="button"
             >
               Remover

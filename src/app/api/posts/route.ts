@@ -64,13 +64,28 @@ export async function GET(request: NextRequest) {
         }
       }
       
+      // Converter social_networks de JSON para array se necessário
       let socialNetworks = [];
       if (row.social_networks) {
         try {
-          socialNetworks = JSON.parse(row.social_networks);
+          // Se for uma string que contém vírgulas, dividir em array
+          if (typeof row.social_networks === 'string' && row.social_networks.includes(',')) {
+            socialNetworks = row.social_networks.split(',').map((n: string) => n.trim());
+          } else {
+            // Tentar fazer parse como JSON
+            const parsed = JSON.parse(row.social_networks);
+            socialNetworks = Array.isArray(parsed) ? parsed : [row.social_networks];
+          }
         } catch (e) {
-          console.error("Erro ao parsear social_networks JSON:", e);
+          console.error("Erro ao processar social_networks:", e);
+          // Se falhar, usar a string como um único item
+          socialNetworks = [row.social_networks];
         }
+      }
+      
+      // Garantir que socialNetworks seja sempre um array
+      if (!Array.isArray(socialNetworks)) {
+        socialNetworks = [];
       }
       
       return {
@@ -123,7 +138,11 @@ export async function POST(request: NextRequest) {
       mediaJson = JSON.stringify(postData.media);
     }
     
-    const socialNetworksJson = JSON.stringify(postData.socialNetworks);
+    // Garantir que socialNetworks seja sempre um array e convertê-lo para JSON
+    const socialNetworksArray = Array.isArray(postData.socialNetworks) 
+      ? postData.socialNetworks 
+      : [postData.socialNetworks];
+    const socialNetworksJson = JSON.stringify(socialNetworksArray);
     
     // Preparar valores da data agendada
     let scheduledDate = null;
@@ -132,11 +151,28 @@ export async function POST(request: NextRequest) {
       const scheduledDateObj = new Date(postData.scheduledDate);
       console.log('Data original recebida:', postData.scheduledDate);
       console.log('Data convertida para objeto Date:', scheduledDateObj);
-      console.log('Mês do objeto Date:', scheduledDateObj.getMonth() + 1); // +1 porque getMonth() retorna 0-11
       
-      // Usar formato UTC para evitar problemas de fuso horário
-      scheduledDate = scheduledDateObj.toISOString().slice(0, 19).replace('T', ' ');
+      // Formatar cada componente da data manualmente para evitar problemas de fuso horário
+      const year = scheduledDateObj.getFullYear();
+      const month = scheduledDateObj.getMonth() + 1; // +1 porque getMonth() retorna 0-11
+      const day = scheduledDateObj.getDate();
+      const hours = scheduledDateObj.getHours();
+      const minutes = scheduledDateObj.getMinutes();
+      const seconds = scheduledDateObj.getSeconds();
+      
+      console.log('Componentes da data:', { year, month, day, hours, minutes, seconds });
+      
+      // Montar string de data no formato MySQL, garantindo que cada parte tenha 2 dígitos
+      // Formato: YYYY-MM-DD HH:MM:SS
+      scheduledDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      
       console.log('Data formatada para MySQL:', scheduledDate);
+      
+      // Validar se a data está no futuro
+      const now = new Date();
+      if (scheduledDateObj <= now) {
+        return NextResponse.json({ message: 'A data de agendamento deve ser no futuro' }, { status: 400 });
+      }
     }
     
     // Preparar valores da data de publicação

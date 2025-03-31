@@ -74,6 +74,8 @@ export function CreatePostForm() {
   }, []);
   
   const resetForm = () => {
+    console.log('CreatePostForm: Iniciando reset do formulário');
+    
     // Limpar todos os campos
     setTitle("");
     setContent("");
@@ -84,18 +86,6 @@ export function CreatePostForm() {
     newDate.setHours(newDate.getHours() + 1);
     newDate.setMinutes(0);
     setScheduledDate(new Date(newDate));
-    
-    // Forçar renderização do DateTimePicker
-    setTimeout(() => {
-      const dateElements = document.querySelectorAll('input[type="date"], input[type="time"]');
-      dateElements.forEach(el => {
-        if (el instanceof HTMLInputElement) {
-          // Forçar evento de mudança para atualizar UI
-          const event = new Event('change', { bubbles: true });
-          el.dispatchEvent(event);
-        }
-      });
-    }, 0);
     
     // Resetar as redes sociais para o padrão (primeiras duas)
     if (availableNetworks.length > 0) {
@@ -113,13 +103,16 @@ export function CreatePostForm() {
     // Garantir que o estado de carregamento seja resetado
     setIsLoading(false);
     
-    // Forçar uma limpeza completa chamando o handleRemoveFile do FileUpload
-    const removeButton = document.querySelector('[data-testid="file-upload"] button[variant="destructive"]') as HTMLButtonElement;
-    if (removeButton) {
-      removeButton.click();
+    // Forçar uma limpeza completa do FileUpload
+    const fileUploadElement = document.querySelector('[data-testid="file-upload"]');
+    if (fileUploadElement) {
+      // Disparar evento customizado para reset
+      const resetEvent = new CustomEvent('fileUpload:reset');
+      fileUploadElement.dispatchEvent(resetEvent);
     }
     
-    // Se não houver botão de remover (porque não há arquivo), não precisamos fazer nada
+    // Disparar evento global também
+    window.dispatchEvent(new CustomEvent('fileUpload:reset'));
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -186,6 +179,11 @@ export function CreatePostForm() {
     }
   };
   
+  const handleFileSelect = (file: File | undefined) => {
+    console.log('CreatePostForm: Arquivo selecionado:', file?.name);
+    setSelectedFile(file);
+  };
+  
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <h2 className="text-xl font-semibold mb-4">Novo Post</h2>
@@ -234,7 +232,7 @@ export function CreatePostForm() {
           Mídia
         </label>
         <FileUpload
-          onFileSelect={setSelectedFile}
+          onFileSelect={handleFileSelect}
           onError={setErrorMessage}
           accept="image/*, video/*"
           fileInputRef={fileInputRef}

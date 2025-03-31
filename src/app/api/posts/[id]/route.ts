@@ -130,6 +130,18 @@ export async function PUT(
     // Dados da atualização
     const data = await request.json();
     
+    // Preparar os dados para o banco
+    let mediaJson = null;
+    if (data.media) {
+      mediaJson = JSON.stringify(data.media);
+    }
+    
+    // Garantir que socialNetworks seja sempre um array e convertê-lo para JSON
+    const socialNetworksArray = Array.isArray(data.socialNetworks) 
+      ? data.socialNetworks 
+      : [data.socialNetworks];
+    const socialNetworksJson = JSON.stringify(socialNetworksArray);
+    
     // Construir a query de atualização
     let updateFields = [];
     let values = [];
@@ -149,17 +161,34 @@ export async function PUT(
       const scheduledDateObj = new Date(data.scheduledDate);
       console.log('PUT - Data original recebida:', data.scheduledDate);
       console.log('PUT - Data convertida para objeto Date:', scheduledDateObj);
-      console.log('PUT - Mês do objeto Date:', scheduledDateObj.getMonth() + 1);
       
-      // Usar formato UTC para evitar problemas de fuso horário
-      const formattedDate = scheduledDateObj.toISOString().slice(0, 19).replace('T', ' ');
+      // Formatar cada componente da data manualmente para evitar problemas de fuso horário
+      const year = scheduledDateObj.getFullYear();
+      const month = scheduledDateObj.getMonth() + 1; // +1 porque getMonth() retorna 0-11
+      const day = scheduledDateObj.getDate();
+      const hours = scheduledDateObj.getHours();
+      const minutes = scheduledDateObj.getMinutes();
+      const seconds = scheduledDateObj.getSeconds();
+      
+      console.log('PUT - Componentes da data:', { year, month, day, hours, minutes, seconds });
+      
+      // Montar string de data no formato MySQL, garantindo que cada parte tenha 2 dígitos
+      const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      
       console.log('PUT - Data formatada para MySQL:', formattedDate);
+      
+      // Validar se a data está no futuro
+      const now = new Date();
+      if (scheduledDateObj <= now) {
+        return NextResponse.json({ message: 'A data de agendamento deve ser no futuro' }, { status: 400 });
+      }
+      
       values.push(formattedDate);
     }
     
     if (data.socialNetworks !== undefined) {
       updateFields.push("social_networks = ?");
-      values.push(JSON.stringify(data.socialNetworks));
+      values.push(socialNetworksJson);
     }
     
     // Adicionar sempre o updated_at
