@@ -19,7 +19,7 @@ Este documento contém as instruções para implantar o Postax em um servidor EC
 - ✅ Configuração do PM2
 - ✅ Configuração do Nginx
 - ✅ Configuração de domínio
-- ⬜ Configuração HTTPS/SSL
+- ✅ Configuração HTTPS/SSL
 - ⬜ Configuração do banco de dados
 - ⬜ Testes de integração
 
@@ -320,6 +320,63 @@ pm2 restart all
 sudo systemctl restart nginx
 ```
 
+### Erro 502 Bad Gateway / PM2 em loop de reinicialização
+
+Se o site estiver retornando erro 502 Bad Gateway e o PM2 estiver em loop de reinicialização, siga estas etapas:
+
+1. **Verifique o status e logs do PM2**:
+   ```bash
+   pm2 status
+   pm2 logs
+   ```
+
+2. **Se o erro for "Could not find a production build in the '.next' directory"**:
+   Isso indica que não há um build válido do Next.js ou o diretório está corrompido.
+
+3. **Solução: Reconstrua o aplicativo**:
+   ```bash
+   # Pare todos os processos PM2
+   pm2 kill
+
+   # Remova arquivos que podem estar corrompidos
+   cd /home/ubuntu/postax
+   rm -rf .next node_modules package-lock.json
+
+   # Instale as dependências novamente
+   export NODE_OPTIONS="--max-old-space-size=4096"
+   npm install --no-fund --production=false
+
+   # Se ocorrer erro com o módulo 'critters' durante o build:
+   npm install critters
+
+   # Se necessário, desative temporariamente a otimização de CSS em next.config.js:
+   # Altere optimizeCss: true para optimizeCss: false
+
+   # Gere os arquivos Prisma
+   npx prisma generate
+
+   # Execute o build
+   npm run build
+
+   # Reinicie o aplicativo
+   pm2 start ecosystem.config.js
+   pm2 save
+   sudo systemctl restart nginx
+   ```
+
+4. **Problema com a opção wait_ready no PM2**:
+   Se o PM2 ficar preso com a mensagem "App has option 'wait_ready' set, waiting for app to be ready...", edite o arquivo ecosystem.config.js e altere `wait_ready: true` para `wait_ready: false` ou remova essa opção.
+
+   ```bash
+   nano ecosystem.config.js
+   # Modifique o arquivo e salve
+   
+   # Reinicie o PM2
+   pm2 kill
+   pm2 start ecosystem.config.js
+   pm2 save
+   ```
+
 ## Atualização da Aplicação
 
 Para atualizar o código da aplicação:
@@ -336,4 +393,4 @@ pm2 reload all
 ---
 
 Última atualização: Abril 2025
-Autor: Time de Desenvolvimento Postax 
+Autor: Time de Desenvolvimento Postax
