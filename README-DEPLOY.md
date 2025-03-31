@@ -91,6 +91,46 @@ sudo systemctl status nginx
 
 A aplicação estará acessível através do IP da instância ou domínio configurado.
 
+## Problemas Conhecidos e Validação
+
+### Sistema de Agendamento de Posts
+
+Durante os testes no ambiente de desenvolvimento, identificamos os seguintes problemas que precisam ser validados após o deploy:
+
+1. **Erro "Failed to fetch" após submissão do formulário de agendamento**:
+   - O formulário mostra uma mensagem de sucesso após o envio, mas em seguida ocorre um erro de runtime no Next.js
+   - O erro específico é `TypeError: Failed to fetch` aparecendo no console
+   - Ocorre quando o sistema tenta fazer requisições após o agendamento do post
+
+2. **Possíveis causas**:
+   - Problemas de conexão com o banco de dados MySQL (verifique logs e configurações SSL)
+   - Falhas nas chamadas de API para serviços externos como AWS S3
+   - Problemas de CORS ao tentar integrar com redes sociais
+   - No ambiente de desenvolvimento, o Windows pode estar bloqueando conexões de saída
+
+3. **Validação após deploy**:
+   - Testar o formulário de agendamento completo
+   - Verificar no console do navegador (F12) se há erros após o submit
+   - Examinar os logs do servidor em tempo real durante o teste:
+     ```bash
+     pm2 logs postax --lines 200
+     ```
+   - Verificar a resposta da API no Network tab do navegador
+
+4. **Solução temporária em desenvolvimento**:
+   - A implementação atual utiliza armazenamento em memória para posts
+   - Implementação final deve usar o banco de dados MySQL através do Prisma
+   - As integrações com redes sociais estão sendo simuladas
+
+### Próximos Passos
+
+Se o erro persistir no ambiente de produção:
+
+1. Verifique as variáveis de ambiente relacionadas ao banco de dados
+2. Confirme se as credenciais do AWS S3 estão corretas
+3. Verifique os logs do servidor para erros específicos
+4. Considere modificar o arquivo `src/services/postService.ts` para remover chamadas de API externas temporariamente
+
 ## Atualizações Futuras
 
 Para atualizar a aplicação com novas versões:
