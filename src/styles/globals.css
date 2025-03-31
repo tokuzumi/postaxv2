@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Postax theme - always dark */
+    --background: 270 100% 6%;
+    --foreground: 210 40% 98%;
+ 
+    --card: 270 100% 7%;
+    --card-foreground: 210 40% 98%;
+ 
+    --popover: 270 100% 8%;
+    --popover-foreground: 210 40% 98%;
+ 
+    --primary: 186 100% 50%;
+    --primary-foreground: 270 100% 6%;
+ 
+    --secondary: 270 30% 15%;
+    --secondary-foreground: 210 40% 98%;
+ 
+    --muted: 270 30% 15%;
+    --muted-foreground: 215 20% 65%;
+ 
+    --accent: 186 100% 50%;
+    --accent-foreground: 270 100% 6%;
+ 
+    --destructive: 338 100% 60%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    --border: 270 30% 15%;
+    --input: 270 30% 15%;
+    --ring: 186 100% 50%;
+ 
+    --radius: 0.75rem;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image: radial-gradient(circle at 50% 50%, rgba(32, 0, 48, 0.5) 0%, rgba(19, 0, 30, 1) 100%);
+  }
+}
+
+@layer components {
+  .postax-card {
+    @apply bg-[rgba(24,3,36,0.8)] rounded-xl shadow-lg p-6 relative;
+  }
+  
+  .postax-heading {
+    @apply text-[#00E1FF] uppercase tracking-wider text-lg font-medium;
+  }
+  
+  .postax-value {
+    @apply text-4xl font-bold tracking-wide text-white;
+  }
+  
+  .postax-sidebar {
+    @apply bg-[#13001E] border-r border-[rgba(255,255,255,0.05)];
+  }
+  
+  .postax-nav-item {
+    @apply flex items-center space-x-2 px-4 py-3 text-gray-300 hover:text-white hover:bg-[rgba(255,255,255,0.05)] rounded-lg transition-colors;
+  }
+  
+  .postax-nav-item.active {
+    @apply bg-[rgba(255,255,255,0.1)] text-white;
+  }
+  
+  .postax-btn-primary {
+    @apply bg-gradient-to-r from-[#00E1FF] to-[#8833FF] text-white rounded-lg px-4 py-2 hover:opacity-90 transition-opacity;
+  }
+  
+  .postax-btn-secondary {
+    @apply bg-[rgba(255,255,255,0.1)] text-white rounded-lg px-4 py-2 hover:bg-[rgba(255,255,255,0.15)] transition-colors;
+  }
+  
+  .postax-input {
+    @apply bg-[rgba(30,4,45,0.5)] border border-[rgba(255,255,255,0.1)] rounded-lg px-4 py-2 text-white focus:border-[#00E1FF] focus:outline-none;
+  }
+} 
