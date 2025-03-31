@@ -1,6 +1,7 @@
 import mysql from "mysql2/promise";
 
-let connection;
+// Definir tipo para a conexão
+let connection: mysql.Pool;
 
 // Configurar conexão usando DATABASE_URL
 if (process.env.DATABASE_URL) {
@@ -49,6 +50,30 @@ if (process.env.DATABASE_URL) {
   });
   
   connection = mysql.createPool(dbConfig);
+}
+
+/**
+ * Executa uma consulta SQL e retorna os resultados
+ * @param query - A consulta SQL a ser executada
+ * @param values - Os valores a serem inseridos na consulta
+ * @returns Promise com os resultados da consulta
+ */
+export async function executeQuery<T = any>(query: string, values: any[] = []): Promise<T> {
+  try {
+    const [results] = await connection.execute(query, values);
+    return results as T;
+  } catch (error) {
+    console.error("Erro na execução da consulta:", error);
+    throw error;
+  }
+}
+
+/**
+ * Retorna a conexão com o banco de dados
+ * @returns A conexão com o banco de dados
+ */
+export function getConnection(): mysql.Pool {
+  return connection;
 }
 
 export const db = connection; 

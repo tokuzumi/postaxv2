@@ -4,9 +4,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { Post, PostStatus, PublishType, MediaFile } from '@/types/post';
 import { s3Service } from '@/lib/s3';
 
-// Simulação de armazenamento (em produção seria banco de dados)
-let posts: Post[] = [];
-
 export class PostService {
   /**
    * Cria um novo post
@@ -42,7 +39,6 @@ export class PostService {
         }
         
         // Em produção, faria o upload para o S3 aqui
-        // Aqui vamos simular que o upload foi feito
         console.log(`Upload simulado da mídia: ${data.mediaFile.name}`);
         
         const mediaType = data.mediaFile.type.startsWith('image/') ? 'image' : 'video';
@@ -64,8 +60,11 @@ export class PostService {
       
       // Criar o post
       const now = new Date();
-      const post: Post = {
-        id: uuidv4(),
+      const postId = uuidv4();
+      
+      // Preparar dados para enviar à API
+      const postData = {
+        id: postId,
         userId: data.userId,
         title: data.title,
         content: data.content,
@@ -79,10 +78,21 @@ export class PostService {
         publishedAt: data.publishType === PublishType.IMMEDIATE ? now : undefined
       };
       
-      // Em produção, salvar no banco de dados
-      // Aqui vamos apenas adicionar ao array em memória
-      posts.push(post);
+      // Enviar para a API
+      const response = await fetch('/api/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(postData),
+      });
       
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao criar post');
+      }
+      
+      const post = await response.json();
       console.log(`Post ${data.publishType === PublishType.IMMEDIATE ? 'publicado' : 'agendado'} com sucesso:`, post);
       
       return post;
@@ -96,28 +106,69 @@ export class PostService {
    * Obtém todos os posts do usuário
    */
   async getUserPosts(userId: string): Promise<Post[]> {
-    // Em produção, buscar do banco de dados
-    console.log(`Buscando posts do usuário ${userId}. Total de posts: ${posts.length}`);
-    console.log("Posts disponíveis:", posts.map(p => ({
-      id: p.id,
-      userId: p.userId,
-      title: p.title,
-      status: p.status
-    })));
-    
-    const userPosts = posts.filter(post => post.userId === userId);
-    console.log(`Posts encontrados para o usuário: ${userPosts.length}`);
-    
-    return userPosts;
+    try {
+      console.log(`Buscando posts do usuário ${userId} via API`);
+      
+      const response = await fetch(`/api/posts?userId=${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao buscar posts');
+      }
+      
+      const posts = await response.json();
+      
+      // Converter as strings de data para objetos Date
+      return posts.map((post: any) => ({
+        ...post,
+        createdAt: new Date(post.createdAt),
+        updatedAt: new Date(post.updatedAt),
+        scheduledDate: post.scheduledDate ? new Date(post.scheduledDate) : undefined,
+        publishedAt: post.publishedAt ? new Date(post.publishedAt) : undefined,
+      }));
+    } catch (error) {
+      console.error("Erro ao buscar posts do usuário:", error);
+      return [];
+    }
   }
   
   /**
    * Obtém um post específico
    */
   async getPost(postId: string): Promise<Post | null> {
-    // Em produção, buscar do banco de dados
-    const post = posts.find(p => p.id === postId);
-    return post || null;
+    try {
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error('Erro ao buscar post');
+      }
+      
+      const post = await response.json();
+      
+      // Converter as strings de data para objetos Date
+      return {
+        ...post,
+        createdAt: new Date(post.createdAt),
+        updatedAt: new Date(post.updatedAt),
+        scheduledDate: post.scheduledDate ? new Date(post.scheduledDate) : undefined,
+        publishedAt: post.publishedAt ? new Date(post.publishedAt) : undefined,
+      };
+    } catch (error) {
+      console.error("Erro ao buscar post:", error);
+      return null;
+    }
   }
   
   /**
@@ -129,69 +180,90 @@ export class PostService {
     scheduledDate?: Date;
     socialNetworks?: string[];
   }): Promise<Post | null> {
-    // Em produção, atualizar no banco de dados
-    const postIndex = posts.findIndex(p => p.id === postId);
-    
-    if (postIndex === -1) {
-      return null;
+    try {
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao atualizar post');
+      }
+      
+      const post = await response.json();
+      
+      // Converter as strings de data para objetos Date
+      return {
+        ...post,
+        createdAt: new Date(post.createdAt),
+        updatedAt: new Date(post.updatedAt),
+        scheduledDate: post.scheduledDate ? new Date(post.scheduledDate) : undefined,
+        publishedAt: post.publishedAt ? new Date(post.publishedAt) : undefined,
+      };
+    } catch (error) {
+      console.error("Erro ao atualizar post:", error);
+      throw error;
     }
-    
-    // Verificar se o post pode ser atualizado
-    if (posts[postIndex].status === PostStatus.PUBLISHED) {
-      throw new Error("Não é possível editar um post já publicado");
-    }
-    
-    // Atualizar os campos
-    const updatedPost = {
-      ...posts[postIndex],
-      ...data,
-      updatedAt: new Date()
-    };
-    
-    posts[postIndex] = updatedPost;
-    return updatedPost;
   }
   
   /**
    * Exclui um post
    */
   async deletePost(postId: string): Promise<boolean> {
-    // Em produção, deletar do banco de dados
-    const initialLength = posts.length;
-    posts = posts.filter(p => p.id !== postId);
-    
-    return posts.length < initialLength;
+    try {
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao excluir post');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Erro ao excluir post:", error);
+      return false;
+    }
   }
   
   /**
-   * Simula a publicação de um post (em produção, integraria com as APIs das redes sociais)
+   * Publica um post agendado
    */
   async publishPost(postId: string): Promise<Post | null> {
-    const postIndex = posts.findIndex(p => p.id === postId);
-    
-    if (postIndex === -1) {
-      return null;
+    try {
+      const response = await fetch(`/api/posts/${postId}/publish`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao publicar post');
+      }
+      
+      const post = await response.json();
+      
+      // Converter as strings de data para objetos Date
+      return {
+        ...post,
+        createdAt: new Date(post.createdAt),
+        updatedAt: new Date(post.updatedAt),
+        scheduledDate: post.scheduledDate ? new Date(post.scheduledDate) : undefined,
+        publishedAt: post.publishedAt ? new Date(post.publishedAt) : undefined,
+      };
+    } catch (error) {
+      console.error("Erro ao publicar post:", error);
+      throw error;
     }
-    
-    // Verificar se o post pode ser publicado
-    if (posts[postIndex].status !== PostStatus.SCHEDULED) {
-      throw new Error("Este post não está agendado para publicação");
-    }
-    
-    // Simular publicação
-    console.log(`Simulando publicação do post ${postId} nas redes sociais:`, 
-      posts[postIndex].socialNetworks.join(', '));
-    
-    // Atualizar status
-    const updatedPost = {
-      ...posts[postIndex],
-      status: PostStatus.PUBLISHED,
-      publishedAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    posts[postIndex] = updatedPost;
-    return updatedPost;
   }
 }
 
