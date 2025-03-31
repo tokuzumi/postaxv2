@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Post, PostStatus } from "@/types/post";
 import { postService } from "@/services/postService";
+import { POST_UPDATED_EVENT } from "./create-post-form";
 
 export function UpcomingPosts() {
   const { data: session } = useSession();
@@ -11,30 +12,46 @@ export function UpcomingPosts() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   
-  useEffect(() => {
-    async function loadPosts() {
-      if (!session?.user?.id) return;
-      
-      try {
-        const userPosts = await postService.getUserPosts(session.user.id);
-        // Filtrar para mostrar apenas posts agendados
-        const scheduledPosts = userPosts.filter(post => post.status === PostStatus.SCHEDULED);
-        // Ordenar por data de agendamento (mais próximos primeiro)
-        scheduledPosts.sort((a, b) => {
-          if (!a.scheduledDate || !b.scheduledDate) return 0;
-          return a.scheduledDate.getTime() - b.scheduledDate.getTime();
-        });
-        
-        setPosts(scheduledPosts);
-      } catch (error) {
-        console.error("Erro ao carregar posts:", error);
-        setError("Não foi possível carregar os posts agendados");
-      } finally {
-        setIsLoading(false);
-      }
-    }
+  // Função para carregar posts
+  const loadPosts = async () => {
+    if (!session?.user?.id) return;
     
+    try {
+      setIsLoading(true);
+      const userPosts = await postService.getUserPosts(session.user.id);
+      // Filtrar para mostrar apenas posts agendados
+      const scheduledPosts = userPosts.filter(post => post.status === PostStatus.SCHEDULED);
+      // Ordenar por data de agendamento (mais próximos primeiro)
+      scheduledPosts.sort((a, b) => {
+        if (!a.scheduledDate || !b.scheduledDate) return 0;
+        return a.scheduledDate.getTime() - b.scheduledDate.getTime();
+      });
+      
+      setPosts(scheduledPosts);
+    } catch (error) {
+      console.error("Erro ao carregar posts:", error);
+      setError("Não foi possível carregar os posts agendados");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Carregar posts na montagem do componente
+  useEffect(() => {
     loadPosts();
+  }, [session]);
+  
+  // Ouvir o evento de atualização de posts
+  useEffect(() => {
+    const handlePostUpdated = () => {
+      loadPosts();
+    };
+    
+    window.addEventListener(POST_UPDATED_EVENT, handlePostUpdated);
+    
+    return () => {
+      window.removeEventListener(POST_UPDATED_EVENT, handlePostUpdated);
+    };
   }, [session]);
   
   if (isLoading) {

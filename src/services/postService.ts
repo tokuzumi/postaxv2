@@ -97,7 +97,18 @@ export class PostService {
    */
   async getUserPosts(userId: string): Promise<Post[]> {
     // Em produção, buscar do banco de dados
-    return posts.filter(post => post.userId === userId);
+    console.log(`Buscando posts do usuário ${userId}. Total de posts: ${posts.length}`);
+    console.log("Posts disponíveis:", posts.map(p => ({
+      id: p.id,
+      userId: p.userId,
+      title: p.title,
+      status: p.status
+    })));
+    
+    const userPosts = posts.filter(post => post.userId === userId);
+    console.log(`Posts encontrados para o usuário: ${userPosts.length}`);
+    
+    return userPosts;
   }
   
   /**

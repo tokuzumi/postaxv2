@@ -11,6 +11,9 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { SocialNetworkSelect, FacebookLogo, InstagramLogo, TikTokLogo } from "@/components/ui/social-network-select";
 
+// Criar um evento personalizado para atualização de posts
+export const POST_UPDATED_EVENT = "postax:post_updated";
+
 export function CreatePostForm() {
   const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
@@ -82,21 +85,14 @@ export function CreatePostForm() {
     newDate.setMinutes(0);
     setScheduledDate(newDate);
     
-    // Manter as redes selecionadas para conveniência
-    
-    // Reset file input value
+    // Reset file input value - abordagem mais direta
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
     
     // Forçar uma re-renderização para garantir que todos os campos visuais sejam limpos
-    setTimeout(() => {
-      // Chamar handleRemoveFile no componente FileUpload se existir
-      const fileUploadButton = document.querySelector('button[class*="text-gray-400 hover:text-white"]') as HTMLButtonElement;
-      if (fileUploadButton) {
-        fileUploadButton.click();
-      }
-    }, 0);
+    // Remover a tentativa complexa de clicar em botões
+    setIsLoading(false); // Garantir que o estado de carregamento seja resetado
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,6 +141,9 @@ export function CreatePostForm() {
         ...postData
       });
       
+      // Disparar evento para notificar que um novo post foi criado
+      window.dispatchEvent(new CustomEvent(POST_UPDATED_EVENT, { detail: result }));
+      
       setShowSuccess(true);
       resetForm();
       
@@ -156,7 +155,6 @@ export function CreatePostForm() {
     } catch (error) {
       console.error("Erro ao criar post:", error);
       setErrorMessage(error instanceof Error ? error.message : "Erro ao criar post");
-    } finally {
       setIsLoading(false);
     }
   };
