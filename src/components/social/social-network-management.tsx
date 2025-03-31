@@ -6,15 +6,14 @@ import { SocialNetworkConnection } from "@/types/post";
 import { socialNetworkService } from "@/services/socialNetworkService";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
 
 export function SocialNetworkManagement() {
   const { data: session } = useSession();
   const [connections, setConnections] = useState<SocialNetworkConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null);
   const availableNetworks = socialNetworkService.getAvailableNetworks();
-  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchConnections() {
@@ -38,10 +37,9 @@ export function SocialNetworkManagement() {
 
   const handleConnect = async (networkId: string, networkName: string) => {
     if (!session?.user?.id) {
-      toast({
-        title: "Erro",
-        description: "Você precisa estar logado para conectar uma rede social.",
-        variant: "destructive"
+      setStatusMessage({
+        text: "Você precisa estar logado para conectar uma rede social.",
+        type: "error"
       });
       return;
     }
@@ -61,16 +59,20 @@ export function SocialNetworkManagement() {
       const newConnection = await socialNetworkService.connectNetwork(mockData);
       setConnections([...connections, newConnection]);
       
-      toast({
-        title: "Conectado com sucesso",
-        description: `Sua conta ${networkName} foi conectada com sucesso.`,
+      setStatusMessage({
+        text: `Sua conta ${networkName} foi conectada com sucesso.`,
+        type: "success"
       });
+      
+      // Limpar a mensagem após 5 segundos
+      setTimeout(() => {
+        setStatusMessage(null);
+      }, 5000);
     } catch (err) {
       console.error("Erro ao conectar rede social:", err);
-      toast({
-        title: "Erro",
-        description: "Não foi possível conectar sua conta. Tente novamente mais tarde.",
-        variant: "destructive"
+      setStatusMessage({
+        text: "Não foi possível conectar sua conta. Tente novamente mais tarde.",
+        type: "error"
       });
     }
   };
@@ -90,19 +92,23 @@ export function SocialNetworkManagement() {
           conn.id === connectionId ? { ...conn, connected: false } : conn
         ));
         
-        toast({
-          title: "Desconectado com sucesso",
-          description: `Sua conta ${networkName} foi desconectada.`,
+        setStatusMessage({
+          text: `Sua conta ${networkName} foi desconectada.`,
+          type: "success"
         });
+        
+        // Limpar a mensagem após 5 segundos
+        setTimeout(() => {
+          setStatusMessage(null);
+        }, 5000);
       } else {
         throw new Error("Falha ao desconectar");
       }
     } catch (err) {
       console.error("Erro ao desconectar rede social:", err);
-      toast({
-        title: "Erro",
-        description: "Não foi possível desconectar sua conta. Tente novamente mais tarde.",
-        variant: "destructive"
+      setStatusMessage({
+        text: "Não foi possível desconectar sua conta. Tente novamente mais tarde.",
+        type: "error"
       });
     }
   };
@@ -136,6 +142,16 @@ export function SocialNetworkManagement() {
 
   return (
     <div className="space-y-6">
+      {statusMessage && (
+        <div className={`p-4 rounded-lg mb-4 ${
+          statusMessage.type === 'success' 
+            ? 'bg-green-900/20 border border-green-800 text-green-300' 
+            : 'bg-red-900/20 border border-red-800 text-red-300'
+        }`}>
+          <p>{statusMessage.text}</p>
+        </div>
+      )}
+      
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {availableNetworks.map((network) => {
           const connection = connections.find(

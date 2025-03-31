@@ -47,7 +47,8 @@ export function RegisterForm() {
     setError(null);
 
     try {
-      const response = await fetch("/api/auth/register", {
+      console.log("Iniciando requisição de registro");
+      const response = await fetch("/api/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -63,6 +64,8 @@ export function RegisterForm() {
         }),
       });
 
+      console.log("Resposta recebida:", response.status);
+      
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Erro na API:", errorData);
@@ -78,6 +81,7 @@ export function RegisterForm() {
       // Redirecionamento para página de login após registro bem-sucedido
       router.push("/login?registered=true");
     } catch (error: any) {
+      console.error("Exceção no registro:", error);
       setError(error.message || "Ocorreu um erro ao cadastrar usuário.");
     } finally {
       setIsLoading(false);
