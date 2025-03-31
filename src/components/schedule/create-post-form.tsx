@@ -85,14 +85,29 @@ export function CreatePostForm() {
     newDate.setMinutes(0);
     setScheduledDate(newDate);
     
-    // Reset file input value - abordagem mais direta
+    // Resetar as redes sociais para o padrão (primeiras duas)
+    if (availableNetworks.length > 0) {
+      setSelectedNetworks([
+        availableNetworks[0].id, 
+        availableNetworks.length > 1 ? availableNetworks[1].id : ""
+      ].filter(Boolean));
+    }
+    
+    // Reset file input value
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
     
-    // Forçar uma re-renderização para garantir que todos os campos visuais sejam limpos
-    // Remover a tentativa complexa de clicar em botões
-    setIsLoading(false); // Garantir que o estado de carregamento seja resetado
+    // Garantir que o estado de carregamento seja resetado
+    setIsLoading(false);
+    
+    // Forçar uma limpeza completa chamando o handleRemoveFile do FileUpload
+    const removeButton = document.querySelector('[data-testid="file-upload"] button[variant="destructive"]') as HTMLButtonElement;
+    if (removeButton) {
+      removeButton.click();
+    }
+    
+    // Se não houver botão de remover (porque não há arquivo), não precisamos fazer nada
   };
   
   const handleSubmit = async (e: React.FormEvent) => {

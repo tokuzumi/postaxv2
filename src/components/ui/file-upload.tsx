@@ -113,6 +113,7 @@ export function FileUpload({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      data-testid="file-upload"
     >
       <input
         type="file"
